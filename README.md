@@ -6,6 +6,8 @@ Integrantes:
 * Joao Toledo RM: 563433
 
 pagina http: 
-* http://20.57.132.118/ .
+* http://20.57.132.118/
+
+  
 pagina wokwi:
 * https://wokwi.com/projects/442196263369668609
