@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard IoT - MPU6050</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .sensor-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .sensor-card {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Dashboard IoT - MPU6050</h1>
+        <p>Monitoramento em tempo real dos dados do sensor</p>
+        
+        <div id="status" class="status disconnected">
+            🔴 Desconectado do MQTT
+        </div>
+
+        <div class="sensor-data">
+            <div class="sensor-card">
+                <h3>Aceleração X</h3>
+                <div id="accelX" class="value">--</div>
+                <div class="timestamp" id="timeX">--</div>
+            </div>
+            <div class="sensor-card">
+                <h3>Aceleração Y</h3>
+                <div id="accelY" class="value">--</div>
+                <div class="timestamp" id="timeY">--</div>
+            </div>
+            <div class="sensor-card">
+                <h3>Aceleração Z</h3>
+                <div id="accelZ" class="value">--</div>
+                <div class="timestamp" id="timeZ">--</div>
+            </div>
+            <div class="sensor-card">
+                <h3>Velocidade X</h3>
+                <div id="velocityX" class="value">--</div>
+                <div class="timestamp" id="timeVX">--</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <h4>📊 Última mensagem recebida:</h4>
+            <pre id="lastMessage">Nenhuma mensagem ainda...</pre>
+        </div>
+    </div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+    const mqttHost = "20.57.132.118"; 
+    const mqttPort = 9001;
+    const mqttTopic = "sensor/mpu6050";
+
+    let client = null;
+    let isConnected = false;
+
+    function connectMQTT() {
+        try {
+            console.log("Tentando conectar MQTT...");
+            
+            client = mqtt.connect(`ws://${mqttHost}:${mqttPort}`, {
+                clientId: "webClient_" + Math.random().toString(16),
+                clean: true,
+                connectTimeout: 4000,
+                reconnectPeriod: 3000,
+            });
+
+            client.on('connect', function () {
+                console.log("Conectado ao MQTT via WebSockets!");
+                updateStatus(true, "🟢 Conectado - Aguardando dados...");
+                client.subscribe(mqttTopic, function (err) {
+                    if (!err) {
+                        console.log("Inscrito no tópico:", mqttTopic);
+                    }
+                });
+            });
+
+            client.on('message', function (topic, message) {
+                console.log("Mensagem recebida:", message.toString());
+                updateStatus(true, "🟢 Conectado - Recebendo dados em tempo real!");
+                
+                try {
+                    const data = JSON.parse(message.toString());
+                    updateDashboard(data);
+                    
+                    document.getElementById("lastMessage").textContent = 
+                        "Última atualização: " + new Date().toLocaleTimeString() + "\n" +
+                        JSON.stringify(data, null, 2);
+                        
+                } catch (error) {
+                    console.error("Erro ao processar mensagem:", error);
+                }
+            });
+
+            client.on('error', function (error) {
+                console.error("Erro MQTT:", error);
+                updateStatus(false, "🔴 Erro de conexão");
+            });
+
+            client.on('close', function () {
+                console.log("Conexão fechada");
+                updateStatus(false, "🔴 Conexão fechada - Reconectando...");
+            });
+
+            client.on('offline', function () {
+                console.log("Cliente offline");
+                updateStatus(false, "🔴 Offline - Tentando reconectar...");
+            });
+
+        } catch (error) {
+            console.error("Erro ao conectar:", error);
+            updateStatus(false, "🔴 Erro: " + error.message);
+        }
+    }
+
+    function updateStatus(connected, message) {
+        const statusElement = document.getElementById("status");
+        if (statusElement) {
+            statusElement.innerHTML = message;
+            statusElement.className = "status " + (connected ? "connected" : "disconnected");
+        }
+        isConnected = connected;
+    }
+
+    function updateDashboard(data) {
+        const now = new Date().toLocaleTimeString();
+        
+        if (data.aceleracao) {
+            setValue("accelX", data.aceleracao.x, "g");
+            setValue("accelY", data.aceleracao.y, "g");
+            setValue("accelZ", data.aceleracao.z, "g");
+        }
+        
+        if (data.velocidade) {
+            setValue("velocityX", data.velocidade.x, "m/s");
+            setValue("velocityY", data.velocidade.y, "m/s");
+            setValue("velocityZ", data.velocidade.z, "m/s");
+        }
+        
+        document.querySelectorAll('.timestamp').forEach(el => {
+            el.textContent = now;
+        });
+    }
+
+    function setValue(elementId, value, unit) {
+        const element = document.getElementById(elementId);
+        if (element && value !== undefined) {
+            element.textContent = value.toFixed(2) + " " + unit;
+        }
+    }
+
+    window.onload = function() {
+        console.log("Página carregada, iniciando MQTT...");
+        connectMQTT();
+    };
+
+    window.onbeforeunload = function() {
+        if (client) {
+            client.end();
+        }
+    };
+</script>
+</body>
+</html>
