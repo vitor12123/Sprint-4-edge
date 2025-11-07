@@ -15,8 +15,8 @@ pagina wokwi:
 
 
 Prints: 
-<img width="1365" height="728" alt="image" src="https://github.com/user-attachments/assets/586cb08b-e944-48f9-b228-90e23c4d778a" />
 <img width="1366" height="680" alt="image" src="https://github.com/user-attachments/assets/b6134483-c569-4f9d-970d-3def0b0480a6" />
+<img width="1365" height="728" alt="image" src="https://github.com/user-attachments/assets/586cb08b-e944-48f9-b228-90e23c4d778a" />
 
 
 Tecnologias usadas: 
